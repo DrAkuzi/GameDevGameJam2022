@@ -17,7 +17,7 @@ public class LootBox : MonoBehaviour
 
     private void Awake()
     {
-        sprite = GetComponent<SpriteRenderer>();
+        sprite = GetComponentInChildren<SpriteRenderer>();
         col = GetComponent<Collider2D>();
         CountText.text = JumpCount.ToString();
     }

@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TarodevController;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
-
+    [SerializeField]
+    bool test;
+    public bool isTest { get { return test; } }
     int currLvl = 1;
     int prevLvl;
     [SerializeField]
@@ -14,6 +17,7 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     PlayerBehaviour player;
     CameraBehaviour cam;
+    bool gameOver;
 
     public delegate void resetLevelState();
     public static event resetLevelState ResetLevelState;
@@ -37,7 +41,8 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if (gameOver && Input.GetKeyDown(KeyCode.Space))
+            SceneManager.LoadScene(0);
     }
 
     public void PlayerDied()
@@ -93,6 +98,7 @@ public class GameManager : MonoBehaviour
     void GameOver()
     {
         UIManager.instance.ShowLoseScreen();
+        gameOver = true;
     }
 
     void GameCompleted()

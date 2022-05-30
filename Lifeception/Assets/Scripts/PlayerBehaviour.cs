@@ -16,12 +16,16 @@ public class PlayerBehaviour : MonoBehaviour
     Text jumpText;
 
 
+    Animator anim;
+
+
     List<int> prevJumpCounts = new List<int>(); 
 
     private void Awake()
     {
         jumpText.text = totalJumps.ToString();
         startPos = transform.position;
+        anim = GetComponentInChildren<Animator>();
         //SavePos(0);
         //scale = transform.localScale.x;
         currJumps = totalJumps;
@@ -48,6 +52,7 @@ public class PlayerBehaviour : MonoBehaviour
     public void Revive(bool resetJump)
     {
         transform.position = startPos;
+        anim.SetBool("isDead", false);
 
         if (resetJump)
         {
@@ -76,6 +81,9 @@ public class PlayerBehaviour : MonoBehaviour
 
     public bool UpdateJump()
     {
+        if (GameManager.instance.isTest)
+            return true;
+
         currJumps--;
         jumpText.text = currJumps.ToString();
         return currJumps != 0;

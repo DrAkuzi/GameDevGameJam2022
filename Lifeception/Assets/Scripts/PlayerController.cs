@@ -26,10 +26,14 @@ namespace TarodevController {
         private bool _active;
         PlayerBehaviour player;
         bool jumpPressed;
+        Animator anim;
+        SpriteRenderer sprite;
 
         void Awake()
         {
             player = GetComponent<PlayerBehaviour>();
+            anim = GetComponentInChildren<Animator>();
+            sprite = GetComponentInChildren<SpriteRenderer>();
             Invoke(nameof(Activate), 0.5f);
         }
 
@@ -51,6 +55,7 @@ namespace TarodevController {
                 //if no more jumps left - die
                 if (!player.UpdateJump())
                 {
+                    anim.SetBool("isDead", true);
                     GameManager.instance.PlayerDied();
                     LockInput(true);
                 }
@@ -78,7 +83,11 @@ namespace TarodevController {
             if (Input.JumpDown) {
                 _lastJumpPressed = Time.time;
                 jumpPressed = true;
+                anim.SetBool("jump", true);
             }
+            anim.SetBool("isWalking", Input.X != 0);
+            if (Input.X != 0)
+                sprite.flipX = Input.X < 0;
         }
 
         public void LockInput(bool toLock)
@@ -136,6 +145,7 @@ namespace TarodevController {
             else if (!_colDown && groundedCheck) {
                 _coyoteUsable = true; // Only trigger when first touching
                 LandingThisFrame = true;
+                anim.SetBool("jump", false);
             }
 
             _colDown = groundedCheck;
@@ -153,7 +163,7 @@ namespace TarodevController {
 
             if(ObstacleDetection(_raysDown) || ObstacleDetection(_raysUp) || ObstacleDetection(_raysLeft) || ObstacleDetection(_raysRight))
             {
-                //player.Revive();
+                anim.SetBool("isDead", true);
                 GameManager.instance.PlayerDied();
                 LockInput(true);
             }
