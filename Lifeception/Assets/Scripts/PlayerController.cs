@@ -25,6 +25,7 @@ namespace TarodevController {
         // This is horrible, but for some reason colliders are not fully established when update starts...
         private bool _active;
         PlayerBehaviour player;
+        bool jumpPressed;
 
         void Awake()
         {
@@ -42,6 +43,20 @@ namespace TarodevController {
 
             GatherInput();
             RunCollisionChecks();
+
+            if (!_active) return;
+
+            if (LandingThisFrame && jumpPressed)
+            {
+                //if no more jumps left - die
+                if (!player.UpdateJump())
+                {
+                    GameManager.instance.PlayerDied();
+                    LockInput(true);
+                }
+
+                jumpPressed = false;
+            }
 
             CalculateWalk(); // Horizontal movement
             CalculateJumpApex(); // Affects fall speed, so calculate before gravity
@@ -62,7 +77,32 @@ namespace TarodevController {
             };
             if (Input.JumpDown) {
                 _lastJumpPressed = Time.time;
+                jumpPressed = true;
             }
+        }
+
+        public void LockInput(bool toLock)
+        {
+            _active = !toLock;
+
+            //reset after unlock
+            if (toLock) ResetInput();
+        }
+
+        void ResetInput()
+        {
+            Input = new FrameInput
+            {
+                JumpDown = false,
+                JumpUp = false,
+                X = 0
+            };
+
+            jumpPressed = false;
+            _lastJumpPressed = 0;
+            Velocity = Vector3.zero;
+            _currentHorizontalSpeed = _currentVerticalSpeed = 0;
+            //print("reset");
         }
 
         #endregion
@@ -72,6 +112,8 @@ namespace TarodevController {
         [Header("COLLISION")] [SerializeField] private Bounds _characterBounds;
         [SerializeField] private LayerMask _groundLayer;
         [SerializeField] private LayerMask _obstacleLayer;
+        [SerializeField] private LayerMask _endpointLayer;
+        [SerializeField] private LayerMask _lootsLayer;
         [SerializeField] private int _detectorCount = 3;
         [SerializeField] private float _detectionRayLength = 0.1f;
         [SerializeField] [Range(0.1f, 0.3f)] private float _rayBuffer = 0.1f; // Prevents side detectors hitting the ground
@@ -98,7 +140,7 @@ namespace TarodevController {
 
             _colDown = groundedCheck;
 
-            if (_colDown && (Input.X != 0)) player.SavePos(Input.X);
+            //if (_colDown && (Input.X != 0)) player.SavePos(Input.X);
 
             // The rest
             _colUp = RunDetection(_raysUp);
@@ -111,12 +153,42 @@ namespace TarodevController {
 
             if(ObstacleDetection(_raysDown) || ObstacleDetection(_raysUp) || ObstacleDetection(_raysLeft) || ObstacleDetection(_raysRight))
             {
-                player.Revive();
+                //player.Revive();
+                GameManager.instance.PlayerDied();
+                LockInput(true);
             }
 
             bool ObstacleDetection(RayRange range)
             {
                 return EvaluateRayPositions(range).Any(point => Physics2D.Raycast(point, range.Dir, _detectionRayLength, _obstacleLayer));
+            }
+
+            if (EndpointDetection(_raysDown) || EndpointDetection(_raysUp) || EndpointDetection(_raysLeft) || EndpointDetection(_raysRight))
+            {
+                //player.Revive();
+                GameManager.instance.PlayerCompleted();
+                LockInput(true);
+            }
+
+            bool EndpointDetection(RayRange range)
+            {
+                return EvaluateRayPositions(range).Any(point => Physics2D.Raycast(point, range.Dir, _detectionRayLength, _endpointLayer));
+            }
+
+            if (LootsDetection(_raysDown) || LootsDetection(_raysUp) || LootsDetection(_raysLeft) || LootsDetection(_raysRight))
+            {
+                player.AddJumpCount(GetJumpLoot());
+            }
+
+            bool LootsDetection(RayRange range)
+            {
+                return EvaluateRayPositions(range).Any(point => Physics2D.Raycast(point, range.Dir, _detectionRayLength, _lootsLayer));
+            }
+
+            int GetJumpLoot()
+            {
+                //print("here");
+                return Physics2D.CircleCast(transform.position, transform.lossyScale.x, Vector2.up, 0, _lootsLayer).transform.GetComponent<LootBox>().GetJumpCount();
             }
         }
 
